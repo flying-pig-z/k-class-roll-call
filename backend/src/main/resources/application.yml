@@ -1,0 +1,11 @@
+server:
+  port: 9090
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/k-class-roll-call
+    username: root
+    password: '@Aa123456'
+logging:
+  level:
+    com.baomidou.mybatisplus: DEBUG  # MyBatis-Plus 日志级别

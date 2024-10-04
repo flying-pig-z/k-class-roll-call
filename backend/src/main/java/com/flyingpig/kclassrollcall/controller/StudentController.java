@@ -1,21 +1,15 @@
 package com.flyingpig.kclassrollcall.controller;
 
 
-import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.read.listener.ReadListener;
 import com.flyingpig.kclassrollcall.common.Result;
 import com.flyingpig.kclassrollcall.entity.Student;
-import com.flyingpig.kclassrollcall.filter.UserContext;
 import com.flyingpig.kclassrollcall.service.IStudentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.File;
-import java.io.IOException;
-
 /**
  * <p>
  * 前端控制器

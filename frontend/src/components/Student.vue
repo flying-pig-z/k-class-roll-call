@@ -14,15 +14,9 @@
       </div>
 
       <button id="searchbtn" @click="search">搜索</button>
-      <el-upload
-        class="upload-demo"
-        action="http://localhost:9090/student/import"  
-        :before-upload="beforeUpload"
-        :on-success="handleSuccess"
-        :on-error="handleError"
-        :show-file-list="false"
-        accept=".xls,.xlsx" 
-      >
+      <el-upload class="upload-demo" :action="`${baseURL}student/import`" :headers="{ 'Authorization': token }"
+        :before-upload="beforeUpload" :on-success="handleSuccess" :on-error="handleError" :show-file-list="false"
+        accept=".xls,.xlsx">
         <el-button id="importbtn" type="primary">导入学生名单</el-button>
       </el-upload>
 
@@ -43,27 +37,21 @@
         <span>{{ student.major }}</span>
         <span>{{ student.score }}</span>
         <!-- 按下修改按钮，将索引 i 传递给方法 -->
-        <el-button type="danger" icon="el-icon-delete" circle  @click="deleteStudent(student.id)" ></el-button>
+        <el-button type="danger" icon="el-icon-delete" circle @click="deleteStudent(student.id)"></el-button>
       </div>
 
 
     </div>
-    <el-pagination
-      id="page"
-      @size-change="handleSizeChange"
-      @current-change="handleCurrentChange"
-      :current-page="currentPage"
-      :page-sizes="[1, 2, 5, 10]"
-      :page-size="pageSize"
-      layout="total, sizes, prev, pager, next, jumper"
-      :total="studentList.length"
-    >
+    <el-pagination id="page" @size-change="handleSizeChange" @current-change="handleCurrentChange"
+      :current-page="currentPage" :page-sizes="[1, 2, 5, 10]" :page-size="pageSize"
+      layout="total, sizes, prev, pager, next, jumper" :total="studentList.length">
     </el-pagination>
   </div>
 </template>
-    
+
 <script>
 import { DeleteStudent, StudentSearch } from "@/api/api";
+import service from "@/utils/request.js"; // 确保路径正确
 export default {
   name: "student",
   data() {
@@ -76,8 +64,9 @@ export default {
       studentList: [],
       currentPage: 1,
       pageSize: 5,
-      fileList: [] 
-
+      fileList: [],
+      baseURL: service.defaults.baseURL,
+      token: window.localStorage.getItem("token")
     };
   },
   methods: {
@@ -95,8 +84,13 @@ export default {
       return isExcel; // 返回 false 会阻止文件上传
     },
     handleSuccess(response, file) {
-      this.$message.success('文件上传成功');
+      if (response.code === 200) {
+        this.$message.success('文件上传成功');
+      } else {
+        this.$message.error('文件上传失败：' + response.message || '未知错误');
+      }
     },
+
     handleError(err, file) {
       this.$message.error('文件上传失败');
     },
@@ -117,9 +111,11 @@ export default {
             console.log(this.studentList)
             this.$message.success("查询成功");
           }
-        } else if(res.code == 401){
+        } else if (res.code == 401) {
           alert("登录过期，请重新登录！");
-          this.$router.push("/login");
+          if (this.$route.path !== "/login") {
+            this.$router.push("/login");
+          }
         }
       });
     },
@@ -129,9 +125,9 @@ export default {
           if (res.code == 500) {
             this.$message.error("删除失败");
           } else if (res.code == 200) {
-              this.$message.success("删除成功");
-              // 这里可以在成功删除后更新学生列表
-              this.studentList.splice(index, 1); // 从学生列表中移除已删除的学生
+            this.$message.success("删除成功");
+            // 这里可以在成功删除后更新学生列表
+            this.studentList.splice(index, 1); // 从学生列表中移除已删除的学生
           }
         })
         .catch((error) => {
@@ -151,21 +147,23 @@ export default {
   },
 };
 </script>
-    
+
 <style scoped>
 #student {
   box-sizing: border-box;
   position: relative;
   width: 85.4%;
   height: 100vh;
-  min-width: 910px;
-  min-height: 700px;
-  background-image: url("../assets/background.png");
+  /* background-image: url("../assets/background.png"); */
+  background-image: url("../assets/login/login-background.png");
   background-size: cover;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  overflow: hidden;
+  /* 隐藏溢出内容 */
 }
+
 #search-box {
   width: 100%;
   height: 100%;
@@ -181,6 +179,7 @@ export default {
   font-size: 15px;
   font-weight: bold;
 }
+
 #number {
   width: 70%;
   height: 40px;
@@ -191,6 +190,7 @@ export default {
   font-size: 15px;
   text-align: center;
 }
+
 #searchbtn {
   width: 80px;
   height: 40px;
@@ -201,16 +201,19 @@ export default {
   opacity: 0.74;
   font-size: 15px;
   font-weight: bold;
-  background: #229fe0;
+  background: #7e8081;
 }
+
 #searchbtn:hover {
-  background: #1e90ff;
+  background: #666769;
 }
+
 #searchbtn:active {
-  background: #1c86ee;
+  background: #666769;
 }
+
 #importbtn {
-  width:150px;
+  width: 150px;
   height: 40px;
   border-radius: 10px;
   border: 0px;
@@ -219,15 +222,18 @@ export default {
   opacity: 0.74;
   font-size: 15px;
   font-weight: bold;
-  background: #229fe0;
+  background: #7e8081;
   color: black;
 }
+
 #importbtn:hover {
-  background: #1e90ff;
+  background: #79797a;
 }
+
 #importbtn:active {
-  background: #1c86ee;
+  background: #666769;
 }
+
 #banner {
   box-sizing: border-box;
   position: absolute;
@@ -241,21 +247,27 @@ export default {
   background: #70707055;
   justify-content: space-evenly;
 }
+
 #span-no {
   margin: 0 0 0 35.5px;
 }
+
 #span-name {
   margin: 0 0 0 60px;
 }
+
 #span-major {
   margin: 0 0 0 50px;
 }
+
 #span-score {
   margin: 0 15px 0 50px;
 }
+
 #delete {
   margin: 0 30px 0 15px;
 }
+
 #list {
   box-sizing: border-box;
   position: absolute;
@@ -269,6 +281,7 @@ export default {
   justify-content: flex-start;
   background: transparent;
 }
+
 .list-item {
   box-sizing: border-box;
   margin-top: 10px;
@@ -281,11 +294,17 @@ export default {
   background: #fffffff5;
   box-shadow: 0 -3px 3px 0 #d4d2d2 inset;
 }
+
 .list-item:hover {
   background: #95daff;
 }
+
 #page {
   margin: auto;
   margin-top: -80px;
+  z-index: 10;
+  /* 添加此行 */
+  position: relative;
+  /* 确保 z-index 生效 */
 }
 </style>

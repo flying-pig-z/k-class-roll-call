@@ -37,8 +37,6 @@ export default new VueRouter({
                 name: 'question',
                 component: Question, // 这是你的组件
             }
-
-
         ],
         redirect: '/home'
 

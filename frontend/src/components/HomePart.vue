@@ -11,14 +11,7 @@
       </div>
     </div>
     <div id="hello">{{ name }}老师您好：</div>
-    <router-link to="/student">
-      <div id="cloud1">
-        <div class="func-title" id="title1">学生<br />查询</div>
-        <div class="func-content" id="content1">
-          搜索获取班级学生名单以及学生积分情况，导入学生名单
-        </div>
-      </div>
-    </router-link>
+
 
     <router-link to="/student">
       <div id="cloud2">
@@ -29,10 +22,12 @@
       </div>
     </router-link>
 
-    <router-link to="/roll-call">
+    <router-link to="/student">
       <div id="cloud3">
-        <div class="func-title" id="title3">点名<br />提问</div>
-        <div class="func-content" id="content3">对学生进行点名，并对到场的学生进行提问</div>
+        <div class="func-title" id="title2">学生<br />查询</div>
+        <div class="func-content" id="content2">
+          搜索获取班级学生名单以及学生积分情况，导入学生名单
+        </div>
       </div>
     </router-link>
 
@@ -59,14 +54,16 @@
 export default {
   data() {
     return {
-      name: "MEW",
+      name: "FlyingPig",
       semester: "",
     };
   },
   beforeMount() {
     if (localStorage.getItem("name") == null) {
       alert("您还未登录或登录已过期，请重新登录！");
-      this.$router.push("/login");
+      if (this.$route.path !== "/login") {
+        this.$router.push("/login");
+      }
     } else {
       this.name = localStorage.getItem("name");
     }
@@ -90,11 +87,10 @@ export default {
   position: relative;
   width: 85.4%;
   height: 100vh;
-  min-width: 910px;
-  min-height: 700px;
-  background-image: url("../assets/home/background.png");
+  background-image: url("../assets/home/backgound2.png");
   background-size: cover;
   display: flex;
+  overflow: hidden; /* 隐藏溢出内容 */
 }
 #banner {
   box-sizing: border-box;
@@ -103,7 +99,7 @@ export default {
   margin-top: 15px;
   width: 90%;
   height: 50px;
-  background-color: #d0e7f2;
+  background-color: #b9c1c4;
   border-radius: 20px;
   justify-content: center;
   background-size: cover;
@@ -132,14 +128,6 @@ export default {
   font-size: 20px;
   align-self: flex-start;
   font-weight: bold;
-}
-@keyframes move1 {
-  from {
-    transform: translate(100%, -100%);
-  }
-  to {
-    transform: translate(0%, 0%);
-  }
 }
 @keyframes move2 {
   from {
@@ -173,19 +161,7 @@ export default {
     transform: translate(0%, 0%);
   }
 }
-#cloud1 {
-  background-image: url("../assets/home/cloud1.png");
-  background-size: contain;
-  position: absolute;
-  z-index: 100;
-  width: 439px;
-  height: 259px;
-  top: 70.9%;
-  left: 6%;
-  animation: move1 1.5s ease;
-}
 #cloud2 {
-  background-image: url("../assets/home/cloud2.png");
   background-size: contain;
   position: absolute;
   z-index: 100;
@@ -196,7 +172,6 @@ export default {
   animation: move2 1.5s ease;
 }
 #cloud3 {
-  background-image: url("../assets/home/cloud3.png");
   background-size: contain;
   position: absolute;
   z-index: 100;
@@ -207,7 +182,6 @@ export default {
   animation: move3 1.5s ease;
 }
 #cloud4 {
-  background-image: url("../assets/home/cloud4.png");
   background-size: contain;
   position: absolute;
   z-index: 100;
@@ -218,7 +192,6 @@ export default {
   animation: move4 1.5s ease;
 }
 #cloud5 {
-  background-image: url("../assets/home/cloud5.png");
   background-size: contain;
   position: absolute;
   z-index: 100;
@@ -234,7 +207,7 @@ export default {
   margin-top: 25px;
   margin-left: 20px;
   position: absolute;
-  color: white;
+  color: black;
 }
 .func-content {
   font-size: 18px;
@@ -242,20 +215,6 @@ export default {
   margin-top: 10px;
   margin-left: 20px;
   position: absolute;
-}
-#title1 {
-  top: 23%;
-  left: 60%;
-  letter-spacing: 2px;
-}
-#content1 {
-  width: 190px;
-  top: 40%;
-  left: 12%;
-  color: #000;
-}
-#content1:hover {
-  color: rgb(255, 86, 86);
 }
 #title2 {
   top: 23%;
@@ -269,21 +228,12 @@ export default {
   color: #000;
 }
 #content2:hover {
-  color: rgb(255, 86, 86);
+  color: white;
 }
 #title3 {
   top: 38%;
   left: 60%;
   letter-spacing: 2px;
-}
-#content3 {
-  width: 190px;
-  top: 26%;
-  left: 14%;
-  color: #000;
-}
-#content3:hover {
-  color: rgb(255, 86, 86);
 }
 #title4 {
   top: 45%;
@@ -294,10 +244,10 @@ export default {
   width: 190px;
   top: 21%;
   left: 14%;
-  color: #000;
+  color: black;
 }
 #content4:hover {
-  color: rgb(255, 86, 86);
+  color: white;
 }
 #title5 {
   top: 35%;
@@ -311,6 +261,6 @@ export default {
   color: #000;
 }
 #content5:hover {
-  color: rgb(255, 86, 86);
+  color: white;
 }
 </style>

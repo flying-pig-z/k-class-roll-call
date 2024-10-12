@@ -37,4 +37,9 @@ public class TeacherController {
         return teacherService.register(teacher);
     }
 
+    @PostMapping("/logout")
+    public Result logout(@RequestBody Teacher teacher){
+        return Result.success();
+    }
+
 }

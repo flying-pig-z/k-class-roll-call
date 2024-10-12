@@ -49,7 +49,9 @@ export default {
           this.$message.success("退出成功！");
           localStorage.removeItem("token");
           localStorage.removeItem("name");
-          this.$router.push("/login");
+          if (this.$route.path !== "/login") {
+            this.$router.push("/login");
+          }
         },
         (err) => {
           this.$message.error(err.msg);
@@ -63,10 +65,9 @@ export default {
 
 <style scoped>
 #sidebar {
-  background-color: #a6e0fe;
+  background-color: #c5d2d8;
   height: 100vh;
   width: 260px;
-  min-height: 815px;
   box-shadow: 8px 0px 11px 0px rgba(0, 0, 0, 0.16);
   border-radius: 5px;
   display: flex;
@@ -75,24 +76,22 @@ export default {
 #info {
   height: 95px;
   width: 260px;
-  min-height: 95px;
   justify-content: center;
   align-items: center;
   position: relative;
-  background: #66c7fe;
-  /* box-shadow: 5px 0px 4px 0px #66c7fe; */
+  background: #c5d2d8;
 }
 #logo {
   position: absolute;
   left: 10px;
-  top: 13px;
+  top: 5%;
   height: 71px;
   width: 71px;
 }
 #title {
   position: absolute;
   left: 105px;
-  top: 26px;
+  top: 25%;
   width: 135px;
   height: 30px;
   font-weight: 600;
@@ -139,15 +138,15 @@ li {
 }
 .el-menu-item {
   color: white !important;
-  background-color: #a6e0fe !important;
+  background-color: #c5d2d8 !important;
   font-size: 18px !important;
 }
 .el-menu-item:hover {
   outline: 0;
-  background-color: #6fc5f1 !important;
+  background-color: #b8c1c5 !important;
 }
 .el-menu-item.is-active {
-  background-color: #6fc5f1 !important;
+  background-color: #c0cbd0 !important;
   padding: 0px !important;
 }
 

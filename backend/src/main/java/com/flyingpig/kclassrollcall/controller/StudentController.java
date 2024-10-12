@@ -3,13 +3,19 @@ package com.flyingpig.kclassrollcall.controller;
 
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.read.listener.ReadListener;
+import com.flyingpig.kclassrollcall.common.RedisConstant;
 import com.flyingpig.kclassrollcall.common.Result;
 import com.flyingpig.kclassrollcall.entity.Student;
+import com.flyingpig.kclassrollcall.filter.UserContext;
 import com.flyingpig.kclassrollcall.service.IStudentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.swing.text.html.parser.Element;
+
 /**
  * <p>
  * 前端控制器
@@ -26,10 +32,19 @@ public class StudentController {
     @Autowired
     IStudentService studentService;
 
+    @Autowired
+    StringRedisTemplate stringRedisTemplate;
+
     @PutMapping("/score")
     public Result modifyScore(Long id, Double score) {
-        return Result.success(studentService.updateById(new Student(id,
-                null, null, null, studentService.getById(id).getScore() + score, null)));
+        if (studentService.updateById(new Student(id,
+                null, null, null, studentService.getById(id).getScore() + score, null))) {
+            stringRedisTemplate.delete(RedisConstant.STUDENT_SCORE_KEY + id);
+            return Result.success();
+        } else {
+            return Result.error("修改分数出错");
+        }
+
     }
 
     @GetMapping("/roll-call")
@@ -44,6 +59,7 @@ public class StudentController {
 
     @PostMapping("/import")
     public Result importExcel(@RequestParam("file") MultipartFile file) {
+        System.out.println("用户上传文件");
         // 如果 validateExcelHeader 返回 false，则文件类型或格式错误
         if (!validateExcelHeader(file)) {
             return Result.error("文件类型或格式错误");
@@ -81,6 +97,8 @@ public class StudentController {
     @DeleteMapping("/{id}")
     public Result deleteStudent(@PathVariable String id) {
         if (studentService.removeById(id)) {
+            stringRedisTemplate.delete(RedisConstant.STUDENT_LIST_KEY + UserContext.getUser());
+            stringRedisTemplate.delete(RedisConstant.STUDENT_SCORE_KEY + id);
             return Result.success();
         } else {
             return Result.error("删除失败");

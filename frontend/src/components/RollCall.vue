@@ -1,11 +1,8 @@
 <template>
   <div id="check-attendance">
     <div id="header">
-      <button
-        id="mode-button"
-        @click="toggleMode"
-        :style="{ backgroundColor: isRandomMode ? '#87CEEB' : '#d74e3e', borderRadius: '20px', color: 'white' }"
-      >
+      <button id="mode-button" @click="toggleMode"
+        :style="{ backgroundColor: isRandomMode ? '#87CEEB' : '#d74e3e', borderRadius: '20px', color: 'white' }">
         {{ modeName }}
       </button>
     </div>
@@ -15,11 +12,8 @@
     </p>
 
     <div id="attendance-button-container">
-      <button
-        id="attendance-button"
-        :style="{ backgroundColor: isRandomMode ? '#87CEEB' : '#d74e3e' }"
-        @click="getRandomStudent"
-      >
+      <button id="attendance-button" :style="{ backgroundColor: isRandomMode ? '#87CEEB' : '#d74e3e' }"
+        @click="getRandomStudent">
         点名
       </button>
     </div>
@@ -47,26 +41,26 @@ import { GetRollBackStudent, ModifyStudentScore } from '@/api/api';
 export default {
   data() {
     return {
-      modeName: '生成随机事件', 
-      isRandomMode: true, /* true为正常模式，false为随机事件模式 */ 
-      detailModeType: 0, /* 0为权重模式，1为众生平等，2为两倍积分模式，4为疯狂星期四模式 */
+      modeName: '生成随机事件',
+      isRandomMode: true, /* true为正常模式，false为随机事件模式 */
+      detailModeType: 0, /* 0为权重模式，1为众生平等，2为两倍积分模式，3为幸运星期三模式 */
       currentStudent: null,
       students: [],
       randomEvent: null, // 新增属性用于存储随机事件
-      randomEvents: ['双倍加分', '疯狂星期四', '众生平等'], // 随机事件列表
+      randomEvents: ['双倍扣分', '幸运星期三', '众生平等'], // 随机事件列表
     };
   },
   methods: {
     toggleMode() {
       this.isRandomMode = !this.isRandomMode;
       this.modeName = this.isRandomMode ? '生成随机事件' : '返回正常模式';
-      
+
       if (!this.isRandomMode) {
         this.randomEvent = this.randomEvents[Math.floor(Math.random() * this.randomEvents.length)]; // 随机生成事件
-        if (this.randomEvent == '双倍加分') {
-          this.detailModeType = 1;
-        } else if (this.randomEvent == '疯狂星期四') {
-          this.detailModeType = 4;
+        if (this.randomEvent == '双倍扣分') {
+          this.detailModeType = 2;
+        } else if (this.randomEvent == '幸运星期三') {
+          this.detailModeType = 3;
         } else if (this.randomEvent == '众生平等') {
           this.detailModeType = 1;
         }
@@ -81,40 +75,60 @@ export default {
         if (res.code == 500) {
           this.$message.error("获取点名学生发生错误");
         } else if (res.code == 200) {
-            this.currentStudent = res.data;
-            this.$message.success("查询成功");
-        } else if(res.code == 401){
+          this.currentStudent = res.data;
+          this.$message.success("查询成功");
+        } else if (res.code == 401) {
           alert("登录过期，请重新登录！");
-          this.$router.push("/login");
+          if (this.$route.path !== "/login") {
+            this.$router.push("/login");
+          }
         }
       });
     },
     markAbsent() {
-      ModifyStudentScore(this.currentStudent.id, -2).then((res) => {
+      let score = -2;
+      if (this.detailModeType == 2) {
+        score = -4;
+      }
+      ModifyStudentScore(this.currentStudent.id, score).then((res) => {
         if (res.code == 500) {
           this.$message.error("修改分数发生错误");
           this.currentStudent = null; // 清空当前学生
         } else if (res.code == 200) {
-          alert(`${this.currentStudent.name} 未到教室，已被登记，扣除两分`);
+          if (score == -2) {
+            alert(`${this.currentStudent.name} 未到教室，已被登记，扣除两分`);
+          } else {
+            alert(`${this.currentStudent.name} 未到教室，已被登记，扣除四分`);
+          }
+
           this.currentStudent = null; // 清空当前学生
         } else if (res.code == 401) {
           alert("登录过期，请重新登录！");
-          this.$router.push("/login");
+          if (this.$route.path !== "/login") {
+            this.$router.push("/login");
+          }
         }
       });
     },
     markPresent() {
-      ModifyStudentScore(this.currentStudent.id, 1).then((res) => {
+      let score = 1;
+      if (this.detailModeType == 3) {
+        score = score * 3;
+      }
+      ModifyStudentScore(this.currentStudent.id, score).then((res) => {
         if (res.code == 500) {
           this.$message.error("修改分数发生错误");
           this.currentStudent = null; // 清空当前学生
         } else if (res.code == 200) {
-          this.$message.success(this.currentStudent.name + " 到达教室增加1分，进入提问环节");
-          // alert(`${this.currentStudent.name} 到达教室增加1分，进入提问环节`);
-          this.$router.push({ name: 'question', params: { student: this.currentStudent,detailModeType: this.detailModeType } });
+          this.$message.success(this.currentStudent.name + " 到达教室增加"+score+"分，进入提问环节");
+          if (this.$route.path !== "/question") {
+            this.$router.push({ name: 'question', params: { student: this.currentStudent, detailModeType: this.detailModeType } });
+          }
         } else if (res.code == 401) {
           alert("登录过期，请重新登录！");
-          this.$router.push("/login");
+          if (this.$route.path !== "/login") {
+            this.$router.push("/login");
+          }
         }
       });
     },
@@ -132,13 +146,14 @@ export default {
   position: relative;
   width: 85.4%;
   height: 100vh;
-  min-width: 910px;
-  min-height: 700px;
-  background-image: url("../assets/background.png");
+  /* background-image: url("../assets/background.png"); */
+  background-image: url("../assets/login/login-background.png");
   background-size: cover;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  overflow: hidden;
+  /* 隐藏溢出内容 */
 }
 
 #header {
@@ -150,10 +165,14 @@ export default {
 
 #mode-button {
   border: none;
-  border-radius: 20px; /* 圆角按钮 */
-  padding: 10px 20px; /* 增加内边距 */
-  font-size: 16px; /* 调整字体大小 */
-  cursor: pointer; /* 鼠标指针样式 */
+  border-radius: 20px;
+  /* 圆角按钮 */
+  padding: 10px 20px;
+  /* 增加内边距 */
+  font-size: 16px;
+  /* 调整字体大小 */
+  cursor: pointer;
+  /* 鼠标指针样式 */
 }
 
 #attendance-button-container {
@@ -186,30 +205,36 @@ export default {
 }
 
 #action-buttons button {
-  flex: 0 0 100px; /* 增加宽度 */
-  height: 70px; /* 增加高度 */
-  margin: 0 15px; /* 增加按钮之间的间距 */
+  flex: 0 0 100px;
+  /* 增加宽度 */
+  height: 70px;
+  /* 增加高度 */
+  margin: 0 15px;
+  /* 增加按钮之间的间距 */
   border-radius: 10px;
-  font-size: 18px; /* 增加字体大小 */
+  font-size: 18px;
+  /* 增加字体大小 */
 }
 
 
 #absentBtn {
-  background-color: #d74e3e; /* 警告红色 */
+  background-color: #d74e3e;
+  /* 警告红色 */
   color: white;
   border: none;
 }
 
 #presentBtn {
-  background-color: #87CEEB; /* 蓝色 */
+  background-color: #87CEEB;
+  /* 蓝色 */
   color: white;
   border: none;
 }
 
 #transferBtn {
-  background-color: #FFD700; /* 黄色 */
+  background-color: #FFD700;
+  /* 黄色 */
   color: white;
   border: none;
 }
 </style>
-

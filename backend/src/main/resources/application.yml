@@ -6,6 +6,17 @@ spring:
     url: jdbc:mysql://localhost:3306/k-class-roll-call
     username: root
     password: '@Aa123456'
+    hikari:
+      minimum-idle: 5  # 最小空闲连接数
+      maximum-pool-size: 10  # 连接池最大连接数
+      connection-timeout: 30000  # 连接超时时间
+      idle-timeout: 600000  # 空闲连接的存活时间
+      max-lifetime: 1800000  # 连接的最长存活时间
+
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
 logging:
   level:
     com.baomidou.mybatisplus: DEBUG  # MyBatis-Plus 日志级别

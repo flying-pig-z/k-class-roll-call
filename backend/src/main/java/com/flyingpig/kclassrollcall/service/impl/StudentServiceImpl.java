@@ -7,19 +7,27 @@ import com.alibaba.excel.read.listener.ReadListener;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.flyingpig.kclassrollcall.common.RedisConstant;
 import com.flyingpig.kclassrollcall.common.Result;
 import com.flyingpig.kclassrollcall.common.RollCallMode;
 import com.flyingpig.kclassrollcall.dto.req.StudentExcelModel;
+import com.flyingpig.kclassrollcall.dto.resp.StudentInfoInCache;
 import com.flyingpig.kclassrollcall.entity.Student;
 import com.flyingpig.kclassrollcall.filter.UserContext;
 import com.flyingpig.kclassrollcall.mapper.StudentMapper;
 import com.flyingpig.kclassrollcall.service.IStudentService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.flyingpig.kclassrollcall.util.cache.ListCacheUtil;
+import com.flyingpig.kclassrollcall.util.cache.StringCacheUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -32,28 +40,67 @@ import java.util.*;
 @Service
 public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> implements IStudentService {
 
+
+    @Autowired
+    ListCacheUtil listCacheUtil;
+
+    @Autowired
+    StringCacheUtil stringCacheUtil;
+
     @Override
     public Result rollCall(String mode) {
         if (!mode.equals(RollCallMode.EQUAL)) {
             return Result.success(rollBackStudentBaseScore());
         } else {
-            return Result.success(this.baseMapper.rollCall(UserContext.getUser(), new Random().nextInt(count())));
+            return Result.success(selectStudentByTeacherId().get(new Random().nextInt(count()) - 1));
         }
     }
 
+
+    private List<Student> selectStudentByTeacherId() {
+        List<StudentInfoInCache> cachedList = listCacheUtil.safeGetWithLock(
+                RedisConstant.STUDENT_LIST_KEY + UserContext.getUser(),
+                StudentInfoInCache.class, // 使用具体的 StudentInfoInCache.class 作为类型
+                () -> {
+                    // 查询学生的逻辑,转换为 StudentInfoInCache 列表
+                    return this.baseMapper.selectList(new LambdaQueryWrapper<Student>()
+                                    .eq(Student::getTeacherId, UserContext.getUser())).stream()
+                            .map(student -> new StudentInfoInCache(student.getId(), student.getName(), student.getNo(), student.getMajor()))
+                            .collect(Collectors.toList());
+                },
+                30L,
+                TimeUnit.MINUTES
+        );
+        List<Student> students = new ArrayList<>();
+        for (StudentInfoInCache studentInfo : cachedList) {
+            Student newStudent = new Student();
+            BeanUtil.copyProperties(studentInfo, newStudent);
+            newStudent.setScore(stringCacheUtil.safeGetWithLock(
+                    RedisConstant.STUDENT_SCORE_KEY + studentInfo.getId(),
+                    Double.class, // 传入正确的类型
+                    () -> {
+                        return this.getBaseMapper().selectById(studentInfo.getId()).getScore();
+                    },
+                    30L,
+                    TimeUnit.MINUTES
+            ));
+            newStudent.setTeacherId(Long.parseLong(UserContext.getUser()));
+            students.add(newStudent);
+        }
+        return students;
+    }
+
+
     private Student rollBackStudentBaseScore() {
         // 获取符合条件的学生列表
-        LambdaQueryWrapper<Student> queryWrapper = new LambdaQueryWrapper<Student>()
-                .eq(Student::getTeacherId, UserContext.getUser());
-        List<Student> students = this.baseMapper.selectList(queryWrapper);
-
+        List<Student> students = selectStudentByTeacherId();
         // 计算权重
         double totalWeight = 0;
         Map<Student, Double> weightMap = new HashMap<>();
         for (Student student : students) {
             double weight;
             if (student.getScore() > 0) {
-                weight = 1.0 / student.getScore(); // 正常权重
+                weight = 1.0 / student.getScore();
             } else {
                 weight = 1; // 给分数为0的学生一个较大的固定权重
             }
@@ -81,10 +128,12 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         LambdaQueryWrapper<Student> queryWrapper = new LambdaQueryWrapper<>();
 
         // 如果 no 和 name 不为空，则分别进行模糊查询
-        queryWrapper.like(StringUtils.isNotBlank(no), Student::getNo, no)
-                .or()
+        queryWrapper
+                .like(StringUtils.isNotBlank(no), Student::getNo, no)
+                .or(StringUtils.isNotBlank(name)) // 仅在 name 不为空时才使用 or
                 .like(StringUtils.isNotBlank(name), Student::getName, name)
                 .eq(Student::getTeacherId, UserContext.getUser());
+        System.out.println(queryWrapper.getTargetSql());
 
         // 分页查询
         Page<Student> page = new Page<>(pageNo, pageSize);
@@ -104,7 +153,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         if (!students.isEmpty()) {
             saveBatch(students);
         }
-
+        stringCacheUtil.getInstance().delete(RedisConstant.STUDENT_LIST_KEY + UserContext.getUser());
         return Result.success("导入成功，已添加 " + students.size() + " 条记录");
     }
 

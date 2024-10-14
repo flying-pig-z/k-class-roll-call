@@ -11,6 +11,7 @@ import com.flyingpig.kclassrollcall.service.ITeacherService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.flyingpig.kclassrollcall.util.JwtUtil;
 import org.apache.catalina.User;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -28,11 +29,10 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     @Override
     public Result login(LoginReq loginReq) {
         Teacher teacher = this.getOne(new LambdaQueryWrapper<Teacher>()
-                .eq(Teacher::getUsername, loginReq.getUsername())
-                .eq(Teacher::getPassword, loginReq.getPassword()));
-        if(teacher == null){
+                .eq(Teacher::getUsername, loginReq.getUsername()));
+        if (teacher == null || !new BCryptPasswordEncoder().matches(loginReq.getPassword(), teacher.getPassword())) {
             return Result.error("账号或密码错误");
-        }else {
+        } else {
             return Result.success(new LoginResp(teacher.getName(), JwtUtil.createJWT(teacher.getId().toString())));
         }
     }
@@ -40,9 +40,9 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     @Override
     public Result register(Teacher teacher) {
         try {
-            save(teacher);
+            save(teacher.setPassword(new BCryptPasswordEncoder().encode(teacher.getPassword())));
             return Result.success("注册成功");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error(e.getMessage());
             return Result.error("注册失败,可能存在用户名已被注册等问题");
         }

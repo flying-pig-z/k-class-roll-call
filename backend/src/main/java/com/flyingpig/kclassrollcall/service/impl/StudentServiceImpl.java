@@ -52,48 +52,32 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         if (!mode.equals(RollCallMode.EQUAL)) {
             return Result.success(rollBackStudentBaseScore());
         } else {
-            return Result.success(selectStudentByTeacherId().get(new Random().nextInt(count()) - 1));
+            List<Student> students = this.baseMapper.selectList(new LambdaQueryWrapper<Student>()
+                    .eq(Student::getTeacherId, UserContext.getUser()));
+            return Result.success(students.get(new Random().nextInt(students.size())));
         }
     }
 
 
     private List<Student> selectStudentByTeacherId() {
-        List<StudentInfoInCache> cachedList = listCacheUtil.safeGetWithLock(
-                RedisConstant.STUDENT_LIST_KEY + UserContext.getUser(),
-                StudentInfoInCache.class, // 使用具体的 StudentInfoInCache.class 作为类型
+        return listCacheUtil.safeGetWithLock(
+                RedisConstant.STUDENT_LIST_KEY + UserContext.getUser(), // Redis Key
+                Student.class,
                 () -> {
-                    // 查询学生的逻辑,转换为 StudentInfoInCache 列表
+                    // 查询学生ID的逻辑
                     return this.baseMapper.selectList(new LambdaQueryWrapper<Student>()
-                                    .eq(Student::getTeacherId, UserContext.getUser())).stream()
-                            .map(student -> new StudentInfoInCache(student.getId(), student.getName(), student.getNo(), student.getMajor()))
-                            .collect(Collectors.toList());
+                            .eq(Student::getTeacherId, UserContext.getUser()));
                 },
-                30L,
+                30L, // 缓存时间
                 TimeUnit.MINUTES
         );
-        List<Student> students = new ArrayList<>();
-        for (StudentInfoInCache studentInfo : cachedList) {
-            Student newStudent = new Student();
-            BeanUtil.copyProperties(studentInfo, newStudent);
-            newStudent.setScore(stringCacheUtil.safeGetWithLock(
-                    RedisConstant.STUDENT_SCORE_KEY + studentInfo.getId(),
-                    Double.class, // 传入正确的类型
-                    () -> {
-                        return this.getBaseMapper().selectById(studentInfo.getId()).getScore();
-                    },
-                    30L,
-                    TimeUnit.MINUTES
-            ));
-            newStudent.setTeacherId(Long.parseLong(UserContext.getUser()));
-            students.add(newStudent);
-        }
-        return students;
     }
 
 
     private Student rollBackStudentBaseScore() {
         // 获取符合条件的学生列表
-        List<Student> students = selectStudentByTeacherId();
+        List<Student> students = this.baseMapper.selectList(new LambdaQueryWrapper<Student>()
+                .eq(Student::getTeacherId, UserContext.getUser()));
         // 计算权重
         double totalWeight = 0;
         Map<Student, Double> weightMap = new HashMap<>();
